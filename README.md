@@ -52,5 +52,6 @@ localhost:3000
 - [ ] Build ui components for maintainable and reuseable
 - [ ] Write CI-CD deployment
 - [ ] Clean code
+- [ ] Improve performance
 - [ ] Improve UI interaction
 - [ ] Improve documentation
