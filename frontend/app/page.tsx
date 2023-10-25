@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { debounce } from "./utils";
+import { PaginationNav1Presentation } from "./components/Pagination";
 
 export default function Home() {
   const [search, setSearch] = useState("");
@@ -133,7 +134,7 @@ dark:file:bg-gray-700 dark:file:text-gray-400 float-right w-1/4"
       </div>
       <div className="w-full relative">
         {rows.length > 0 && (
-          <table className="table-auto w-full text-sm text-left text-gray-500 dark:text-gray-400">
+          <><table className="table-auto w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
               <tr>
                 <th scope="col" className="px-6 py-3">
@@ -159,8 +160,9 @@ dark:file:bg-gray-700 dark:file:text-gray-400 float-right w-1/4"
                   <UserData key={index} row={row} headers={headers} />
                 ))}
             </tbody>
-          </table>
+          </table><PaginationNav1Presentation fetchData={fetchData} search={search} /></>
         )}
+
       </div>
     </main>
   );
