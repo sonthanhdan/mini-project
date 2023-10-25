@@ -1,20 +1,50 @@
-'use client'
-import { useEffect, useState } from "react";
+"use client";
+import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
+import { debounce } from "./utils";
 
 export default function Home() {
+  const [search, setSearch] = useState("");
   const [rows, setRows] = useState([]);
   const [headers, setHeaders] = useState([]);
   const [showProgress, setShowProgress] = useState(false);
-  const [percentage, setPercentage] = useState('0');
-  useEffect(() => {
+  const [percentage, setPercentage] = useState("0");
 
+  const fetchData = (keyword: string, limit = 10, page = 1) => {
+
+    const queryParameters: Record<string, string> = {
+      limit: limit.toString(),
+      page: page.toString(),
+    };
+
+    if (keyword) {
+      queryParameters.keyword = keyword;
+    }
+    axios
+      .get("http://localhost:3000/api/records", {
+        params: queryParameters,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+      .then((res) => {
+        setRows(res.data?.results || []);
+      });
+  };
+
+  useEffect(() => {
+    fetchData(search, 10, 1);
   }, []);
+
+  const debounceSearch = useCallback(
+    debounce((value: string) => fetchData(value), 1000),
+    []
+  );
 
   const uploadCSV = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-      const res = await axios.post("http://localhost:3000/upload", formData, {
+    const res = await axios.post("http://localhost:3000/api/upload", formData, {
       onUploadProgress: (progressEvent: any) => {
         const percentage = (progressEvent.loaded / progressEvent.total) * 100;
         setPercentage(percentage.toFixed(2));
@@ -22,40 +52,28 @@ export default function Home() {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-      });
+    });
 
-
-    setHeaders(res.data)
-      console.log("🚀 ~ file: page.tsx:25 ~ uploadCSV ~ res:", res)
-
-  }
+    setHeaders(res.data);
+  };
   const handleFile = async (e: any) => {
     const file = e.target.files[0];
-    if (!file) return
+    if (!file) return;
     setShowProgress(true);
     await uploadCSV(file);
-    file.value = '';
-
-  }
-
-  function logLength<T extends { length: number }>(element: T): void {
-    console.log(element.length);
-  }
-
-  logLength([1, 2, 3]);
-
-
+    file.value = "";
+  };
 
   return (
     <main className="flex min-h-screen flex-col items-center p-14 min-w-fit">
       <div className="w-full bg-gray-200 rounded-full dark:bg-gray-700 mb-4">
         {showProgress && (
           <div
-          className="bg-blue-600 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full w-44"
-          style={{ width: `${percentage}%` }}
-        >
-            { percentage }%
-        </div>
+            className="bg-blue-600 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full w-44"
+            style={{ width: `${percentage}%` }}
+          >
+            {percentage}%
+          </div>
         )}
       </div>
 
@@ -66,12 +84,20 @@ export default function Home() {
             id="voice-search"
             className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
             placeholder="Search"
-            required
+            onInput={(e) => {
+              setSearch(e.currentTarget.value);
+            }}
+            onChange={(e) => {
+              // setSearch(e.currentTarget.value);
+              debounceSearch(e.currentTarget.value);
+            }}
+            value={search || ""}
           />
         </div>
         <button
           type="submit"
           className="inline-flex items-center py-2.5 px-3 ml-2 text-sm font-medium text-white bg-blue-700 rounded-lg border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+          onClick={() => fetchData(search)}
         >
           <svg
             className="w-4 h-4 mr-2"
@@ -95,7 +121,7 @@ export default function Home() {
           name="file-input"
           id="file-input"
           onInput={(e) => {
-            setPercentage('0');
+            setPercentage("0");
           }}
           onChange={handleFile}
           className="block border border-gray-200 shadow-sm rounded-md text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-900 dark:border-gray-700 dark:text-gray-400
@@ -106,35 +132,54 @@ dark:file:bg-gray-700 dark:file:text-gray-400 float-right w-1/4"
         />
       </div>
       <div className="w-full relative">
-        <table className="table-auto w-full text-sm text-left text-gray-500 dark:text-gray-400">
-          <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-            <tr>
-              {headers?.map((header) => (
-                <th key={header} scope="col" className="px-6 py-3">
-                  {header}
+        {rows.length > 0 && (
+          <table className="table-auto w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+              <tr>
+                <th scope="col" className="px-6 py-3">
+                  id
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="bg-white border-b dark:bg-gray-900 dark:border-gray-700">
-              <th
-                scope="row"
-                className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-              >
-                Apple MacBook Pro
-              </th>
-              <td className="px-6 py-4">Silver</td>
-              <td className="px-6 py-4">Laptop</td>
-              <td className="px-6 py-4">$2999</td>
-              <td className="px-6 py-4">
-                <textarea className="w-full" cols={30} rows={10} ></textarea>
-              </td>
-            </tr>
-
-          </tbody>
-        </table>
+                <th scope="col" className="px-6 py-3">
+                  postId
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  name
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  email
+                </th>
+                <th scope="col" className="px-6 py-3">
+                  body
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length > 0 &&
+                rows.map((row, index) => (
+                  <UserData key={index} row={row} headers={headers} />
+                ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </main>
+  );
+}
+
+function UserData({
+  row,
+  headers,
+}: {
+  row: Record<string, string>;
+  headers: string[];
+}) {
+  return (
+    <tr>
+      <td>{row.id}</td>
+      <td>{row.postId}</td>
+      <td>{row.name}</td>
+      <td>{row.email}</td>
+      <td>{row.body}</td>
+    </tr>
   );
 }

@@ -6,20 +6,28 @@ import {
   HttpStatus,
   ParseFilePipe,
   Post,
+  Query,
   Req,
   Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { AppService } from './app.service';
+
 import { FileInterceptor } from '@nestjs/platform-express/multer';
 import { Readable } from 'stream';
 import * as csv from 'fast-csv';
 import { Response } from 'express';
+import { DataSource, FindManyOptions, Like } from 'typeorm';
+import { AppService } from './app.service';
+import { UserData } from './user-data.entity';
+import { isNumeric } from './utils';
 
-@Controller()
+@Controller('api')
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    private readonly appService: AppService,
+    private dataSource: DataSource,
+  ) {}
 
   @Get()
   getHello(): string {
@@ -43,43 +51,79 @@ export class AppController {
 
     await new Promise((resolve, reject) => {
       const results = [];
-      let headers = [];
-      const progress = { total: file.size, uploaded: 0 };
+      let headers: Record<string, unknown>[] = [];
       stream
         .pipe(
           csv.parse({
             headers: true,
+            ignoreEmpty: true,
+            delimiter: ',',
+            trim: true,
           }),
         )
         .on('error', (error) => {
           reject(error);
         })
-        .on('headers', (row: any) => {
-          headers = row;
-          // res.write('[');
+        .on('headers', (rows: Record<string, unknown>[]) => {
+          headers = rows;
         })
-        .on('data', (row: { [s: string]: unknown } | ArrayLike<unknown>) => {
-          progress.uploaded += Object.values(row).toString().length;
+        .on('data', async (row: UserData) => {
           results.push(row);
-          // res.write(JSON.stringify(progress));
 
           // TODO:
           // insert database
+          await this.dataSource
+            .createQueryBuilder()
+            .insert()
+            .into(UserData)
+            .values(row)
+            .execute();
         })
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         .on('end', (rowCount: number) => {
-          // res.write(
-          //   JSON.stringify({
-          //     total: file.size,
-          //     uploaded: file.size,
-          //   }),
-          // );
           res.end(JSON.stringify(headers));
         });
     });
   }
 
-  @Get('data')
+  @Get('records')
   @HttpCode(HttpStatus.OK)
-  async getData() {}
+  async getUploadedRecords(
+    @Query()
+    query: {
+      keyword?: string;
+      limit?: number;
+      page?: number;
+    },
+  ): Promise<any> {
+    const take = query.limit || 10;
+    const skip = query.page || 0;
+    const keyword = query.keyword || '';
+
+    const filters: FindManyOptions<UserData> = {
+      order: { id: 'DESC' },
+      take,
+      skip,
+    };
+
+    if (keyword.length) {
+      filters.where = [
+        { name: Like('%' + keyword + '%') },
+        { email: Like('%' + keyword + '%') },
+      ];
+
+      if (isNumeric(keyword)) {
+        filters.where.push({ postId: +keyword });
+      }
+    }
+
+    const [results, total] = await this.dataSource
+      .getRepository(UserData)
+      .findAndCount(filters);
+
+    return {
+      results,
+      total,
+    };
+  }
 }
