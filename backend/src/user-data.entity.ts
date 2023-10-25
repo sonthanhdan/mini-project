@@ -1,6 +1,14 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 
 @Entity()
+@Index('user_index_UNIQUE', ['postId', 'email', 'name'], { unique: true })
 export class UserData {
   @PrimaryGeneratedColumn()
   id: number;
@@ -16,4 +24,9 @@ export class UserData {
 
   @Column()
   body: string;
+
+  @CreateDateColumn({
+    nullable: true,
+  })
+  public createdAt: Date;
 }

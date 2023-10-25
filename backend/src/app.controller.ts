@@ -6,18 +6,21 @@ import {
   HttpStatus,
   ParseFilePipe,
   Post,
+  Query,
   Req,
   Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { AppService } from './app.service';
+
 import { FileInterceptor } from '@nestjs/platform-express/multer';
 import { Readable } from 'stream';
 import * as csv from 'fast-csv';
 import { Response } from 'express';
-import { DataSource } from 'typeorm';
+import { DataSource, FindManyOptions, Like } from 'typeorm';
+import { AppService } from './app.service';
 import { UserData } from './user-data.entity';
+import { isNumeric } from './utils';
 
 @Controller('api')
 export class AppController {
@@ -83,7 +86,44 @@ export class AppController {
     });
   }
 
-  @Get('data')
+  @Get('records')
   @HttpCode(HttpStatus.OK)
-  async getData() {}
+  async getUploadedRecords(
+    @Query()
+    query: {
+      keyword?: string;
+      limit?: number;
+      page?: number;
+    },
+  ): Promise<any> {
+    const take = query.limit || 10;
+    const skip = query.page || 0;
+    const keyword = query.keyword || '';
+
+    const filters: FindManyOptions<UserData> = {
+      order: { id: 'DESC' },
+      take,
+      skip,
+    };
+
+    if (keyword.length) {
+      filters.where = [
+        { name: Like('%' + keyword + '%') },
+        { email: Like('%' + keyword + '%') },
+      ];
+
+      if (isNumeric(keyword)) {
+        filters.where.push({ postId: +keyword });
+      }
+    }
+
+    const [results, total] = await this.dataSource
+      .getRepository(UserData)
+      .findAndCount(filters);
+
+    return {
+      results,
+      total,
+    };
+  }
 }
