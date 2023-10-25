@@ -4,10 +4,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserData } from './user-data.entity';
-
+import appConfig from './app.config';
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      load: [appConfig],
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
