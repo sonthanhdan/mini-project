@@ -5,7 +5,7 @@ Frontend Using [Next.js](https://nextjs.org/)
 Backend Using [Nest.js](https://nestjs.com/)
 Main programming language typescript
 ###  Require:
-- Docker
+- [Docker](https://www.docker.com/products/docker-desktop/) or [Orbstack](https://orbstack.dev)
 - Nodejs version v18
 
 ### Installation
