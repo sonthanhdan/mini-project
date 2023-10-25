@@ -1,0 +1,16 @@
+version: '2'
+
+networks:
+  app-tier:
+    name: app-tier
+    driver: bridge
+
+services:
+  postgresql:
+    image: 'bitnami/postgresql:latest'
+    networks:
+      - app-tier
+    environment:
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=secret
+      - POSTGRESQL_DATABASE=mycsv_db
