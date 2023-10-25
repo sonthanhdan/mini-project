@@ -14,7 +14,7 @@ export default function Home() {
   const uploadCSV = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-      const res = await axios.post("http://localhost:3000/upload", formData, {
+      const res = await axios.post("http://localhost:3000/api/upload", formData, {
       onUploadProgress: (progressEvent: any) => {
         const percentage = (progressEvent.loaded / progressEvent.total) * 100;
         setPercentage(percentage.toFixed(2));
@@ -37,12 +37,6 @@ export default function Home() {
     file.value = '';
 
   }
-
-  function logLength<T extends { length: number }>(element: T): void {
-    console.log(element.length);
-  }
-
-  logLength([1, 2, 3]);
 
 
 

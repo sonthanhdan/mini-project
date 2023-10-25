@@ -20,6 +20,7 @@ import appConfig from './app.config';
       entities: [UserData],
       synchronize: true,
       logging: true,
+      autoLoadEntities: true,
     }),
   ],
   controllers: [AppController],

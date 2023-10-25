@@ -16,10 +16,15 @@ import { FileInterceptor } from '@nestjs/platform-express/multer';
 import { Readable } from 'stream';
 import * as csv from 'fast-csv';
 import { Response } from 'express';
+import { DataSource } from 'typeorm';
+import { UserData } from './user-data.entity';
 
-@Controller()
+@Controller('api')
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    private readonly appService: AppService,
+    private dataSource: DataSource,
+  ) {}
 
   @Get()
   getHello(): string {
@@ -43,37 +48,36 @@ export class AppController {
 
     await new Promise((resolve, reject) => {
       const results = [];
-      let headers = [];
-      const progress = { total: file.size, uploaded: 0 };
+      let headers: Record<string, unknown>[] = [];
       stream
         .pipe(
           csv.parse({
             headers: true,
+            ignoreEmpty: true,
+            delimiter: ',',
+            trim: true,
           }),
         )
         .on('error', (error) => {
           reject(error);
         })
-        .on('headers', (row: any) => {
-          headers = row;
-          // res.write('[');
+        .on('headers', (rows: Record<string, unknown>[]) => {
+          headers = rows;
         })
-        .on('data', (row: { [s: string]: unknown } | ArrayLike<unknown>) => {
-          progress.uploaded += Object.values(row).toString().length;
+        .on('data', async (row: UserData) => {
           results.push(row);
-          // res.write(JSON.stringify(progress));
 
           // TODO:
           // insert database
+          await this.dataSource
+            .createQueryBuilder()
+            .insert()
+            .into(UserData)
+            .values(row)
+            .execute();
         })
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         .on('end', (rowCount: number) => {
-          // res.write(
-          //   JSON.stringify({
-          //     total: file.size,
-          //     uploaded: file.size,
-          //   }),
-          // );
           res.end(JSON.stringify(headers));
         });
     });
