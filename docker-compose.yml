@@ -8,9 +8,14 @@ networks:
 services:
   postgresql:
     image: 'bitnami/postgresql:latest'
+    ports:
+      - '5432:5432'
     networks:
       - app-tier
+    volumes:
+      - ./.docker/pg_hba.conf:/bitnami/postgresql/conf/pg_hba.conf
     environment:
       - POSTGRESQL_USERNAME=postgres
       - POSTGRESQL_PASSWORD=secret
+      - POSTGRESQL_POSTGRES_PASSWORD=secret
       - POSTGRESQL_DATABASE=mycsv_db
