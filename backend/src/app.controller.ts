@@ -73,13 +73,14 @@ export class AppController {
           results.push(row);
         })
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        .on('end', (rowCount: number) => {
+        .on('end', async (rowCount: number) => {
+          console.log('BPromise', BPromise);
           // TODO: chunk data bulk insert
           const CHUNK_SIZE = 50;
-          BPromise.all(
+          await BPromise.map(
             chunk(results, CHUNK_SIZE),
-            (items: UserData[]) => {
-              this.dataSource
+            async (items: UserData[]) => {
+              return await this.dataSource
                 .createQueryBuilder()
                 .insert()
                 .into(UserData)
