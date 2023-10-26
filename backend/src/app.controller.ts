@@ -21,6 +21,8 @@ import { DataSource, FindManyOptions, Like } from 'typeorm';
 import { AppService } from './app.service';
 import { UserData } from './user-data.entity';
 import { isNumeric } from './utils';
+import { Promise as BPromise } from 'bluebird';
+import { chunk } from 'lodash';
 
 @Controller('api')
 export class AppController {
@@ -69,18 +71,24 @@ export class AppController {
         })
         .on('data', async (row: UserData) => {
           results.push(row);
-
-          // TODO:
-          // insert database
-          await this.dataSource
-            .createQueryBuilder()
-            .insert()
-            .into(UserData)
-            .values(row)
-            .execute();
         })
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         .on('end', (rowCount: number) => {
+          // TODO: chunk data bulk insert
+          const CHUNK_SIZE = 50;
+          BPromise.all(
+            chunk(results, CHUNK_SIZE),
+            (items: UserData[]) => {
+              this.dataSource
+                .createQueryBuilder()
+                .insert()
+                .into(UserData)
+                .values(items)
+                .execute();
+            },
+            { concurrency: CHUNK_SIZE },
+          );
+
           res.end(JSON.stringify(headers));
         });
     });
